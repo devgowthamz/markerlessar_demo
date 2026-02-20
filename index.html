@@ -1,142 +1,166 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>From Bean to Brew – WebXR Coffee</title>
+  <title>PG Coffee – Immersive Office</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script>
+    /* Boundary */
+    AFRAME.registerComponent('solid-boundary', {
+      tick: function () {
+        const p = this.el.getAttribute('position');
+        p.x = Math.min(Math.max(p.x, -4.2), 4.2);
+        p.z = Math.min(Math.max(p.z, -4.2), 4.2);
+        this.el.setAttribute('position', p);
+      }
+    });
 
-  <!-- AR Support -->
-  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    /* Hover scaling for better UX */
+    AFRAME.registerComponent('hover-scale', {
+      init: function () {
+        this.el.addEventListener('mouseenter', () => {
+          this.el.object3D.scale.set(1.1, 1.1, 1.1);
+        });
+        this.el.addEventListener('mouseleave', () => {
+          this.el.object3D.scale.set(1, 1, 1);
+        });
+      }
+    });
 
-  <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    #ui {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.6);
-      color: white;
-      padding: 12px 20px;
-      border-radius: 10px;
-      text-align: center;
-    }
-    button {
-      padding: 8px 12px;
-      margin: 5px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-    }
-  </style>
+    /* Coffee interaction */
+    AFRAME.registerComponent('coffee-click', {
+      init: function () {
+        const liquid = document.querySelector('#coffee-liquid');
+        this.el.addEventListener('click', () => {
+          const a2 = document.querySelector('#audio2');
+          const a3 = document.querySelector('#audio3');
+
+          // fill cup animation
+          liquid.setAttribute('animation__fill', {
+            property: 'height',
+            to: 0.12,
+            dur: 400,
+            easing: 'linear'
+          });
+
+          // after fill, drink
+          setTimeout(() => {
+            /* Play drinking sound */
+            a2.components.sound.playSound();
+            document.querySelector('#msg1').setAttribute('visible', true);
+
+            /* Lift coffee cup */
+            this.el.setAttribute('animation__lift', {
+              property: 'position',
+              to: '-0.6 1.15 0.25',
+              dur: 800,
+              easing: 'easeOutQuad'
+            });
+
+            // empty the liquid
+            liquid.setAttribute('animation__empty', {
+              property: 'height',
+              to: 0.001,
+              dur: 800,
+              delay: 400,
+              easing: 'easeInQuad'
+            });
+
+            /* After drinking */
+            setTimeout(() => {
+              document.querySelectorAll('.coffee-wall')
+                .forEach(w => w.setAttribute('visible', true));
+
+              document.querySelector('#msg1').setAttribute('visible', false);
+              document.querySelector('#msg2').setAttribute('visible', true);
+
+              a3.components.sound.playSound();
+            }, 1200);
+          }, 400);
+        });
+      }
+    });
+  </script>
 </head>
 
-<body>
+<body style="margin:0; overflow:hidden;">
 
-<a-scene
-  embedded
-  vr-mode-ui="enabled: true"
-  renderer="antialias: true"
-  background="color: #ECECEC">
+<a-scene cursor="rayOrigin: mouse" raycaster="objects: .clickable">
 
-  <!-- Camera -->
-  <a-entity position="0 1.6 3">
-    <a-camera></a-camera>
+  <!-- Assets -->
+  <a-assets>
+    <audio id="s1" src="1.wav"></audio>
+    <audio id="s2" src="2.wav"></audio>
+    <audio id="s3" src="3.wav"></audio>
+
+    <img id="c1" src="https://images.unsplash.com/photo-1507133750040-4a8f57009571?w=400">
+    <img id="c2" src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400">
+    <img id="c3" src="https://images.unsplash.com/photo-1511920170033-f8396924c348?w=400">
+    <img id="c4" src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400">
+  </a-assets>
+
+  <!-- Camera near laptop -->
+  <a-entity id="rig" position="0 0 -1" solid-boundary>
+    <a-camera>
+      <a-cursor></a-cursor>
+    </a-camera>
   </a-entity>
 
-  <!-- Light -->
-  <a-light type="ambient" intensity="0.6"></a-light>
-  <a-light type="directional" position="1 3 2" intensity="0.8"></a-light>
+  <!-- Floor & Ceiling -->
+  <a-plane rotation="-90 0 0" width="10" height="10" color="#1a252f"></a-plane>
+  <a-plane position="0 4 0" rotation="90 0 0" width="10" height="10" color="#ffffff"></a-plane>
 
-  <!-- Coffee Table -->
-  <a-cylinder position="0 0 0"
-              radius="1"
-              height="0.1"
-              color="#6F4E37">
-  </a-cylinder>
+  <!-- Walls (updated palette for better UX) -->
+  <a-box position="-5 2 0" rotation="0 90 0" width="10" height="4" depth="0.2" color="#A9DFBF"></a-box>
+  <a-box position="5 2 0" rotation="0 90 0" width="10" height="4" depth="0.2" color="#AED6F1"></a-box>
+  <a-box position="0 2 -5" width="10" height="4" depth="0.2" color="#F9E79F"></a-box>
+  <a-box position="0 2 5" width="10" height="4" depth="0.2" color="#F5B7B1"></a-box>
 
-  <!-- Coffee Packet (Box) -->
-  <a-box id="coffee"
-         position="0 0.6 0"
-         depth="0.3"
-         height="0.8"
-         width="0.5"
-         color="#3B2F2F"
-         animation="property: rotation; to: 0 360 0; loop: true; dur: 10000">
-  </a-box>
+  <!-- Posters (hidden initially) -->
+  <a-entity class="coffee-wall" visible="false">
+    <a-plane position="-2 2 -4.85" width="1.2" height="1.2" material="src:#c1"></a-plane>
+    <a-plane position="0 2 -4.85" width="1.2" height="1.2" material="src:#c2"></a-plane>
 
-  <!-- Hotspot -->
-  <a-sphere position="0.35 0.9 0"
-            radius="0.05"
-            color="red"
-            onclick="showInfo()">
-  </a-sphere>
+    <a-plane position="-2 2 4.85" rotation="0 180 0" width="1.2" height="1.2" material="src:#c3"></a-plane>
+    <a-plane position="0 2 4.85" rotation="0 180 0" width="1.2" height="1.2" material="src:#c4"></a-plane>
 
-  <!-- Text -->
-  <a-text id="infoText"
-          value="100% Natural Coffee\nFreshly Roasted"
-          position="-0.8 1.4 0"
-          width="3"
-          color="#000">
-  </a-text>
-
-  <!-- Coffee Cup -->
-  <a-cylinder position="1 0.45 0"
-              radius="0.2"
-              height="0.3"
-              color="white">
-  </a-cylinder>
-
-  <!-- Steam Effect -->
-  <a-entity position="1 0.8 0"
-            particle-system="preset: dust; particleCount: 200; color: #ccc">
+    <a-plane position="-4.85 2 -1" rotation="0 90 0" width="1.2" height="1.2" material="src:#c1"></a-plane>
+    <a-plane position="4.85 2 -1" rotation="0 -90 0" width="1.2" height="1.2" material="src:#c2"></a-plane>
   </a-entity>
+
+  <!-- Desk & Laptop -->
+  <a-entity position="0 0 -3.5">
+    <a-box width="2.5" height="0.1" depth="1.2" color="#2C3E50" position="0 0.8 0"></a-box>
+    <!-- table leg for realism -->
+    <a-cylinder radius="0.1" height="0.8" color="#2C3E50" position="0 0.4 0"></a-cylinder>
+    <a-plane position="0 1.15 -0.375" width="0.8" height="0.4" color="#3498DB" opacity="0.4"></a-plane>
+
+    <!-- Coffee cup -->
+    <a-entity id="coffee-cup" class="clickable" coffee-click hover-scale position="-0.6 0.9 0.3">
+      <a-cylinder radius="0.06" height="0.12" color="#FFFFFF"></a-cylinder>
+      <!-- liquid cylinder inside cup -->
+      <a-cylinder id="coffee-liquid" radius="0.05" height="0.001" color="#6f4e37" position="0 0.06 0"></a-cylinder>
+      <a-text value="DRINK" position="0 0.18 0" align="center" width="2" color="#333"></a-text>
+    </a-entity>
+
+    <!-- Messages -->
+    <a-text id="msg1" visible="false" value="Pause your work"
+      position="0 1.9 0.2" align="center" width="4" color="#FFD700"></a-text>
+
+    <a-text id="msg2" visible="false" value="Coffee Time ☕"
+      position="0 1.6 0.2" align="center" width="4" color="#FFFFFF"></a-text>
+  </a-entity>
+
+  <!-- Chair -->
+  <!-- <a-cylinder position="0 0.4 -2.5" radius="0.35" height="0.1" color="#34495E"></a-cylinder>
+  <a-box position="0 0.95 -2.5" width="0.6" height="0.9" depth="0.1" color="#2C3E50"></a-box> -->
+
+  <!-- Audio -->
+  <a-entity id="audio1" sound="src:#s1; autoplay:true; loop:false"></a-entity>
+  <a-entity id="audio2" sound="src:#s2"></a-entity>
+  <a-entity id="audio3" sound="src:#s3"></a-entity>
 
 </a-scene>
-
-<!-- UI -->
-<div id="ui">
-  <b>☕ From Bean to Brew</b><br>
-  <button onclick="rotateCoffee()">Rotate</button>
-  <button onclick="zoomCoffee()">Zoom</button>
-  <button onclick="alert('AR Mode works on supported mobile browsers')">
-    View in AR
-  </button>
-</div>
-
-<script>
-  let zoomed = false;
-  let rotating = true;
-
-  function showInfo() {
-    document.getElementById("infoText").setAttribute(
-      "value",
-      "Arabica Beans\nMedium Roast\nRich Aroma"
-    );
-  }
-
-  function rotateCoffee() {
-    const coffee = document.getElementById("coffee");
-    rotating = !rotating;
-    coffee.setAttribute(
-      "animation",
-      rotating
-        ? "property: rotation; to: 0 360 0; loop: true; dur: 10000"
-        : ""
-    );
-  }
-
-  function zoomCoffee() {
-    const coffee = document.getElementById("coffee");
-    zoomed = !zoomed;
-    coffee.setAttribute(
-      "position",
-      zoomed ? "0 1 1.5" : "0 0.6 0"
-    );
-  }
-</script>
 
 </body>
 </html>
