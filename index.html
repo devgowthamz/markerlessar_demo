@@ -1,73 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Stable A-Frame -->
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <meta charset="UTF-8">
+  <title>From Bean to Brew – WebXR Coffee</title>
 
-    <!-- Local aframe-ar -->
-    <script src="./aframe-ar-main/dist/aframe-ar.min.js"></script>
-    <title>MarkLess</title>
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <!-- AR Support -->
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #ui {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    button {
+      padding: 8px 12px;
+      margin: 5px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
 </head>
+
 <body>
-    <script>
-      function showMessage(message){
-        let hud = document.querySelector("#hud");
-        hud.setAttribute('value', message);
-      }
 
-        AFRAME.registerComponent('ar-logic',{
-            init: function(){
-                showMessage('ar-logic running');
-            },
-            tick : function(){
-              let cam = document.querySelector("#cam");
-              if(!cam){return;}
-              showMessage('cam detected');
-              let collision = cam.components.raycaster.getIntersection(this.el);
-              if(!collision){return;}
-              showMessage('Occured collision' + collision.point.x.toFixed(2) + " " + collision.point.z.toFixed(2));
-              let circle = document.querySelector("#circle");
-              circle.setAttribute('position', collision.point);
-            }
-        });
+<a-scene
+  embedded
+  vr-mode-ui="enabled: true"
+  renderer="antialias: true"
+  background="color: #ECECEC">
 
-        window.addEventListener('touchstart', function(){
-          let box = document.querySelector("#box");
-          let circle = document.querySelector("#circle");
-          let pos = circle.getAttribute('position');
+  <!-- Camera -->
+  <a-entity position="0 1.6 3">
+    <a-camera></a-camera>
+  </a-entity>
 
-          box.setAttribute('position', pos);
-        });
+  <!-- Light -->
+  <a-light type="ambient" intensity="0.6"></a-light>
+  <a-light type="directional" position="1 3 2" intensity="0.8"></a-light>
 
-    </script>
+  <!-- Coffee Table -->
+  <a-cylinder position="0 0 0"
+              radius="1"
+              height="0.1"
+              color="#6F4E37">
+  </a-cylinder>
 
+  <!-- Coffee Packet (Box) -->
+  <a-box id="coffee"
+         position="0 0.6 0"
+         depth="0.3"
+         height="0.8"
+         width="0.5"
+         color="#3B2F2F"
+         animation="property: rotation; to: 0 360 0; loop: true; dur: 10000">
+  </a-box>
 
-    <a-scene ar ar-logic>
-        <a-camera id="cam" ar-raycaster raycaster="objects:none;">
-          <a-text id="hud" 
-            value="Summa Text" 
-            position="0 -0.1 -0.25"
-            align="center"
-            wrap-count="800"
-          ></a-text>
-        </a-camera>
-    
-        <a-ring
-          id="circle"
-          rotation="-90 0 0"
-          radius-inner="0.01"
-          radius-outer="0.02">
-        </a-ring>
-    
-        <!-- <a-box id="box" position="0 0 -1" color="red" scale="0.2 0.2 0.2"></a-box> -->
-        <a-gltf-model id="box"
-          src="model/arCar.glb"
-          scale="5 5 5"
-          position="0 0 0"
-        ></a-gltf-model>
-    
-    </a-scene>
+  <!-- Hotspot -->
+  <a-sphere position="0.35 0.9 0"
+            radius="0.05"
+            color="red"
+            onclick="showInfo()">
+  </a-sphere>
+
+  <!-- Text -->
+  <a-text id="infoText"
+          value="100% Natural Coffee\nFreshly Roasted"
+          position="-0.8 1.4 0"
+          width="3"
+          color="#000">
+  </a-text>
+
+  <!-- Coffee Cup -->
+  <a-cylinder position="1 0.45 0"
+              radius="0.2"
+              height="0.3"
+              color="white">
+  </a-cylinder>
+
+  <!-- Steam Effect -->
+  <a-entity position="1 0.8 0"
+            particle-system="preset: dust; particleCount: 200; color: #ccc">
+  </a-entity>
+
+</a-scene>
+
+<!-- UI -->
+<div id="ui">
+  <b>☕ From Bean to Brew</b><br>
+  <button onclick="rotateCoffee()">Rotate</button>
+  <button onclick="zoomCoffee()">Zoom</button>
+  <button onclick="alert('AR Mode works on supported mobile browsers')">
+    View in AR
+  </button>
+</div>
+
+<script>
+  let zoomed = false;
+  let rotating = true;
+
+  function showInfo() {
+    document.getElementById("infoText").setAttribute(
+      "value",
+      "Arabica Beans\nMedium Roast\nRich Aroma"
+    );
+  }
+
+  function rotateCoffee() {
+    const coffee = document.getElementById("coffee");
+    rotating = !rotating;
+    coffee.setAttribute(
+      "animation",
+      rotating
+        ? "property: rotation; to: 0 360 0; loop: true; dur: 10000"
+        : ""
+    );
+  }
+
+  function zoomCoffee() {
+    const coffee = document.getElementById("coffee");
+    zoomed = !zoomed;
+    coffee.setAttribute(
+      "position",
+      zoomed ? "0 1 1.5" : "0 0.6 0"
+    );
+  }
+</script>
+
 </body>
 </html>
